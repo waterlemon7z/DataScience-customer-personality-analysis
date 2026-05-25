@@ -1,43 +1,3 @@
-# Customer Personality Analysis
-
-**Data Science Term Project — Team 9**
-
-[Customer Personality Analysis 데이터셋](https://www.kaggle.com/datasets/imakash3011/customer-personality-analysis/data)을 사용해 마케팅 캠페인 응답을 예측하고 고객을 세분화하는 프로젝트입니다.
-
-## 👥 Team Members
-
-- 202334424 김다빈
-- 202239863 김동규
-- 202235055 배진성
-- 202235134 최민석
-- 202434860 한지수
-
-## 📋 Project Overview
-
-2,240명의 고객 데이터를 분석하여 두 가지 머신러닝 태스크를 수행합니다:
-
-1. **Classification** — 고객이 마지막 마케팅 캠페인에 응답할지 예측
-2. **Clustering** — 고객을 마케팅 페르소나로 세분화
-
-## 📁 Repository Structure
-
-```
-.
-├── classification.py        # 분류 모델 (Logistic Regression, KNN, Decision Tree, Random Forest 비교)
-├── clustering.py            # K-Means 군집화 + 페르소나 분석
-├── marketing_campaign.csv   # 데이터셋 (Kaggle에서 다운로드)
-├── requirements.txt         # Python 라이브러리 목록
-├── README.md                # 이 파일
-└── outputs/                 # 실행 후 자동 생성되는 결과 폴더
-    ├── classification_results.png
-    ├── classification_cv_scores.csv
-    ├── clustering_results.png
-    ├── cluster_heatmap.png
-    └── cluster_profiles.csv
-```
-
-## 🚀 How to Run
-
 ### 1. 라이브러리 설치
 
 ```bash
@@ -51,7 +11,7 @@ pip install -r requirements.txt
 
 ### 3. 실행
 
-두 파일은 **독립적으로** 실행됩니다:
+두 파일은 독립적으로 실행됩니다:
 
 ```bash
 # 분류만 실행
@@ -63,7 +23,7 @@ python clustering.py
 
 모든 결과(그래프, 표)는 `outputs/` 폴더에 자동 저장됩니다.
 
-## 🔧 Methodology
+## Methodology
 
 ### 공통 전처리 (Preprocessing)
 
@@ -91,13 +51,13 @@ python clustering.py
 - **Response 제외**: 군집화 변수에서 Response를 빼고, 군집 형성 **후** 각 군집의 응답률을 해석에만 사용
 - **시각화**: Elbow, Silhouette, PCA 2D 투영, 군집별 응답률, 히트맵
 
-## 📊 Key Results
+## Key Results
 
 ### Classification
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
 |---|---|---|---|---|---|
-| **Logistic Regression** ⭐ | 0.819 | 0.443 | **0.784** | 0.565 | **0.897** |
+| **Logistic Regression**  | 0.819 | 0.443 | **0.784** | 0.565 | **0.897** |
 | KNN | 0.871 | 0.665 | 0.281 | 0.395 | 0.831 |
 | Decision Tree | 0.765 | 0.357 | 0.698 | 0.471 | 0.750 |
 | Random Forest | 0.882 | 0.699 | 0.377 | 0.489 | 0.891 |
@@ -109,12 +69,12 @@ Logistic Regression이 ROC-AUC 0.897로 최고 성능을 보였으며,
 
 | Cluster | Persona | Size | Income | Spending | Response Rate |
 |---|---|---|---|---|---|
-| **3** | 🏆 VIP 충성 고객 | 193 | $80,749 | $1,663 | **56.5%** |
-| **1** | 👨‍👩‍👧 자녀 있는 가족 고객 | 448 | $54,393 | $706 | 16.7% |
-| **0** | 💼 고소득 무관심층 | 591 | $70,885 | $1,045 | 11.2% |
-| **2** | 💸 저소득·소액 고객 | 1,004 | $34,127 | $100 | 8.4% |
+| **3** | VIP 충성 고객 | 193 | $80,749 | $1,663 | **56.5%** |
+| **1** | 자녀 있는 가족 고객 | 448 | $54,393 | $706 | 16.7% |
+| **0** | 고소득 무관심층 | 591 | $70,885 | $1,045 | 11.2% |
+| **2** | 저소득·소액 고객 | 1,004 | $34,127 | $100 | 8.4% |
 
-### 🎯 마케팅 전략 제안
+###  마케팅 전략 제안
 
 - **Cluster 3 (VIP)**: 프리미엄 상품 제안, VIP 전용 혜택, 로열티 프로그램.
   ROI가 가장 높은 세그먼트로 새 캠페인 우선 타겟.
@@ -124,7 +84,7 @@ Logistic Regression이 ROC-AUC 0.897로 최고 성능을 보였으며,
 - **Cluster 2 (저소득)**: 비용이 큰 직접 캠페인은 비효율.
   저비용 웹 기반 채널 위주로 운영.
 
-## 📦 Dataset
+## Dataset
 
 - **Source**: [Customer Personality Analysis (Kaggle)](https://www.kaggle.com/datasets/imakash3011/customer-personality-analysis/data)
 - **Records**: 2,240명
