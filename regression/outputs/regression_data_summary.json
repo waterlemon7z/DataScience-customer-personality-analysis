@@ -1,0 +1,53 @@
+{
+  "business_goal": "Predict product preference shares and rank personalized ad banners.",
+  "raw_shape": [
+    2240,
+    29
+  ],
+  "cleaned_shape": [
+    2236,
+    37
+  ],
+  "removed_rows": 4,
+  "targets": [
+    "WineShare",
+    "FruitShare",
+    "MeatShare",
+    "FishShare",
+    "SweetShare",
+    "GoldShare"
+  ],
+  "feature_sets": {
+    "new_user": [
+      "Age",
+      "Income",
+      "Education",
+      "Marital_Status",
+      "Kidhome",
+      "Teenhome"
+    ],
+    "early_behavior": [
+      "Age",
+      "Income",
+      "Education",
+      "Marital_Status",
+      "Kidhome",
+      "Teenhome",
+      "NumWebVisitsMonth"
+    ],
+    "existing_customer": [
+      "Age",
+      "Income",
+      "Education",
+      "Marital_Status",
+      "Kidhome",
+      "Teenhome",
+      "Recency",
+      "NumDealsPurchases",
+      "NumWebPurchases",
+      "NumCatalogPurchases",
+      "NumStorePurchases"
+    ]
+  },
+  "leakage_rule": "Mnt product spending columns and TotalSpending are target-only variables, not input features."
+}
