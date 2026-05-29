@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import kagglehub
 import pandas as pd
 import numpy as np
@@ -6,10 +8,18 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split, KFold, cross_val_score
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, PolynomialFeatures
+from sklearn.preprocessing import (
+    MinMaxScaler,
+    OneHotEncoder,
+    OrdinalEncoder,
+    PolynomialFeatures,
+    RobustScaler,
+    StandardScaler,
+)
 from sklearn.impute import SimpleImputer
 
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.linear_model import Lasso, LinearRegression, Ridge
 
 from sklearn.metrics import (
     mean_squared_error,
@@ -17,8 +27,10 @@ from sklearn.metrics import (
     r2_score
 )
 
-class IncomeRegressor:
+class TotalSpendingRegressor:
     def __init__(self):
+        self.figure_dir = Path("figures")
+        self.result_dir = Path("results")
         self.raw_df = self.__load_dataset_from_kaggle()
 
 
@@ -30,9 +42,24 @@ class IncomeRegressor:
         path = kagglehub.dataset_download("imakash3011/customer-personality-analysis")
         df = pd.read_csv(path + '/marketing_campaign.csv', sep='\t')
         return df.copy()
-    def preprocessing(self, ):
+    def preprocessing(self):
         temp_df = self.create_features(self.raw_df)
         self.df = self.clean_data(temp_df)
+
+    def save_and_show_plot(self, filename):
+        """
+        Save the current matplotlib figure to the figures directory and show it.
+        """
+        self.figure_dir.mkdir(exist_ok=True)
+        safe_filename = "".join(
+            char.lower() if char.isalnum() else "_"
+            for char in filename
+        ).strip("_")
+        figure_path = self.figure_dir / f"{safe_filename}.png"
+        plt.savefig(figure_path, dpi=300, bbox_inches="tight")
+        print(f"Saved figure: {figure_path}")
+        plt.show()
+        plt.close()
 
     def create_features(self, df):
         """
@@ -118,39 +145,52 @@ class IncomeRegressor:
 
         return df
 
-    def data_inspection(self, df= None):
+    def data_inspection(self, df=None):
         if df is None:
             df = self.raw_df
         corr_matrix = df.corr(method='pearson', numeric_only=True)
-        print("--- cov matrix ---")
+        print("--- correlation matrix ---")
         print(corr_matrix)
 
         plt.figure(figsize=(20, 20))
 
         sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', vmin=-1, vmax=1, linewidths=0.5)
         plt.title('Correlation Matrix Heatmap', fontsize=15)
-        plt.show()
+        self.save_and_show_plot("correlation_matrix_heatmap")
 
-    def build_preprocessor(self, X):
+    def build_preprocessor(self, X, scaler_name="standard", encoder_name="onehot"):
         """
         Build preprocessing pipeline:
-        - Numeric columns: median imputation + StandardScaler
-        - Categorical columns: most frequent imputation + OneHotEncoder
+        - Numeric columns: median imputation + selected scaling method
+        - Categorical columns: most frequent imputation + selected encoding method
         """
         categorical_cols = X.select_dtypes(include=["object", "category"]).columns.tolist()
         numeric_cols = X.select_dtypes(include=["int64", "float64", "int32", "float32"]).columns.tolist()
 
+        scalers = {
+            "standard": StandardScaler(),
+            "minmax": MinMaxScaler(),
+            "robust": RobustScaler(),
+        }
+        encoders = {
+            "onehot": OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+            "ordinal": OrdinalEncoder(
+                handle_unknown="use_encoded_value",
+                unknown_value=-1,
+            ),
+        }
+
         numeric_transformer = Pipeline(
             steps=[
                 ("imputer", SimpleImputer(strategy="median")),
-                ("scaler", StandardScaler()),
+                ("scaler", scalers[scaler_name]),
             ]
         )
 
         categorical_transformer = Pipeline(
             steps=[
                 ("imputer", SimpleImputer(strategy="most_frequent")),
-                ("encoder", OneHotEncoder(handle_unknown="ignore")),
+                ("encoder", encoders[encoder_name]),
             ]
         )
 
@@ -162,6 +202,154 @@ class IncomeRegressor:
         )
 
         return preprocessor
+
+    def find_best_combinations(self, df, top_n=5):
+        """
+        Run model selection experiments under one top-level function.
+
+        It evaluates combinations of:
+        - numeric scaling methods
+        - categorical encoding methods
+        - learning models and model parameters
+        - cross-validation and hold-out test metrics
+        """
+        print("\n==============================")
+        print("Model Selection: Top Combinations")
+        print("==============================")
+
+        selected_features = [
+            "Income",
+            "Age",
+            "Kidhome",
+            "Teenhome",
+            "Customer_Days",
+            "TotalChildren",
+            "Education",
+            "Marital_Status",
+        ]
+        X = df[selected_features]
+        y = df["TotalSpending"]
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.2,
+            random_state=42,
+        )
+        cv = KFold(n_splits=5, shuffle=True, random_state=42)
+
+        model_configs = [
+            ("LinearRegression", LinearRegression()),
+            ("Ridge_alpha_0.1", Ridge(alpha=0.1)),
+            ("Ridge_alpha_1.0", Ridge(alpha=1.0)),
+            ("Ridge_alpha_10.0", Ridge(alpha=10.0)),
+            ("Lasso_alpha_0.1", Lasso(alpha=0.1, max_iter=10000)),
+            ("Lasso_alpha_1.0", Lasso(alpha=1.0, max_iter=10000)),
+            (
+                "RandomForest_depth_5",
+                RandomForestRegressor(
+                    n_estimators=200,
+                    max_depth=5,
+                    random_state=42,
+                    n_jobs=-1,
+                ),
+            ),
+            (
+                "RandomForest_depth_10",
+                RandomForestRegressor(
+                    n_estimators=200,
+                    max_depth=10,
+                    random_state=42,
+                    n_jobs=-1,
+                ),
+            ),
+            (
+                "GradientBoosting_lr_0.05",
+                GradientBoostingRegressor(
+                    learning_rate=0.05,
+                    n_estimators=200,
+                    max_depth=3,
+                    random_state=42,
+                ),
+            ),
+            (
+                "GradientBoosting_lr_0.1",
+                GradientBoostingRegressor(
+                    learning_rate=0.1,
+                    n_estimators=200,
+                    max_depth=3,
+                    random_state=42,
+                ),
+            ),
+        ]
+
+        results = []
+        for scaler_name in ["standard", "minmax", "robust"]:
+            for encoder_name in ["onehot", "ordinal"]:
+                preprocessor = self.build_preprocessor(
+                    X,
+                    scaler_name=scaler_name,
+                    encoder_name=encoder_name,
+                )
+
+                for model_name, model in model_configs:
+                    pipeline = Pipeline(
+                        steps=[
+                            ("preprocessor", preprocessor),
+                            ("model", model),
+                        ]
+                    )
+
+                    cv_r2_scores = cross_val_score(
+                        pipeline,
+                        X,
+                        y,
+                        cv=cv,
+                        scoring="r2",
+                    )
+                    cv_mae_scores = -cross_val_score(
+                        pipeline,
+                        X,
+                        y,
+                        cv=cv,
+                        scoring="neg_mean_absolute_error",
+                    )
+
+                    pipeline.fit(X_train, y_train)
+                    y_pred = pipeline.predict(X_test)
+
+                    test_mse = mean_squared_error(y_test, y_pred)
+                    results.append(
+                        {
+                            "scaler": scaler_name,
+                            "encoder": encoder_name,
+                            "model": model_name,
+                            "cv_r2_mean": cv_r2_scores.mean(),
+                            "cv_r2_std": cv_r2_scores.std(),
+                            "cv_mae_mean": cv_mae_scores.mean(),
+                            "test_r2": r2_score(y_test, y_pred),
+                            "test_mae": mean_absolute_error(y_test, y_pred),
+                            "test_rmse": np.sqrt(test_mse),
+                        }
+                    )
+
+        results_df = pd.DataFrame(results).sort_values(
+            by=["cv_r2_mean", "test_r2"],
+            ascending=False,
+        )
+
+        print(f"\nTop {top_n} combinations by mean CV R2:")
+        top_results = results_df.head(top_n)
+        print(top_results.to_string(index=False))
+
+        self.result_dir.mkdir(exist_ok=True)
+        results_df.to_csv(self.result_dir / "model_selection_results.csv", index=False)
+        top_results.to_csv(self.result_dir / "top_5_model_combinations.csv", index=False)
+        print(f"\nSaved results: {self.result_dir / 'model_selection_results.csv'}")
+        print(f"Saved top {top_n}: {self.result_dir / 'top_5_model_combinations.csv'}")
+
+        self.model_selection_results = results_df
+        return results_df
 
     def run_regression(self, df):
         """
@@ -261,7 +449,7 @@ class IncomeRegressor:
         plt.ylabel("Predicted TotalSpending")
         plt.title(f"Actual vs Predicted TotalSpending ({model_name})")
         plt.tight_layout()
-        plt.show()
+        self.save_and_show_plot(f"actual_vs_predicted_{model_name}")
 
     def plot_regression_curve(self, fitted_model, X, y, selected_features, model_name, feature="Income"):
         """
@@ -283,23 +471,6 @@ class IncomeRegressor:
         plt.title(f"{model_name}: {feature} vs TotalSpending")
         plt.legend()
         plt.tight_layout()
-        plt.show()
+        self.save_and_show_plot(f"{model_name}_{feature}_regression_curve")
 
 
-def main():
-    reg = IncomeRegressor()
-    reg.preprocessing()
-
-    print("Original shape:", reg.raw_df.shape)
-    print("Preprocessed shape:", reg.df.shape)
-
-    print("\nMissing values after preprocessing:")
-    missing_values = reg.df.isnull().sum()
-    print(missing_values[missing_values > 0])
-
-    reg.data_inspection(reg.df)
-    reg.run_regression(reg.df)
-
-
-if __name__ == "__main__":
-    main()
