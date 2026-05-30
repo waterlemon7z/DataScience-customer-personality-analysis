@@ -1,0 +1,5 @@
+﻿Cluster,CustomerCount,Income_mean,Age_mean,TotalChildren_mean,CustomerTenure_mean,Recency_mean,TotalSpending_mean,TotalPurchases_mean,CampaignAcceptedTotal_mean,NumWebVisitsMonth_mean,Response_Rate,Persona_Label
+0,993,34269.04,42.32,1.22,314.38,49.25,92.14,7.56,0.08,6.4,0.085,"Low-income, low-spending, less-responsive customers"
+1,451,53036.27,48.48,1.35,473.11,48.31,666.34,21.03,0.25,6.74,0.164,"Middle-income, middle-spending customers"
+2,223,81401.3,44.48,0.2,359.91,49.28,1644.1,21.6,1.84,3.17,0.507,"High-income, high-spending, responsive customers"
+3,569,70161.24,47.52,0.46,325.52,49.45,1048.04,20.11,0.11,3.15,0.111,"High-income, high-spending, less-responsive customers"

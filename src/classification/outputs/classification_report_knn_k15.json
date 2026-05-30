@@ -1,0 +1,27 @@
+{
+  "No Response": {
+    "precision": 0.8859857482185273,
+    "recall": 0.979002624671916,
+    "f1-score": 0.9301745635910225,
+    "support": 381.0
+  },
+  "Response": {
+    "precision": 0.7037037037037037,
+    "recall": 0.2835820895522388,
+    "f1-score": 0.40425531914893614,
+    "support": 67.0
+  },
+  "accuracy": 0.875,
+  "macro avg": {
+    "precision": 0.7948447259611156,
+    "recall": 0.6312923571120774,
+    "f1-score": 0.6672149413699793,
+    "support": 448.0
+  },
+  "weighted avg": {
+    "precision": 0.8587248174540336,
+    "recall": 0.875,
+    "f1-score": 0.8515214623016927,
+    "support": 448.0
+  }
+}

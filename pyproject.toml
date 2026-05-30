@@ -1,0 +1,12 @@
+[project]
+name = "datascience-customer-personality-analysis"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.2.0",
+    "kagglehub>=1.0.1",
+    "matplotlib>=3.10.9",
+    "pandas>=3.0.3",
+    "scikit-learn>=1.7.0",
+    "seaborn>=0.13.2",
+]

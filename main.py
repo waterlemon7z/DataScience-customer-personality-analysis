@@ -1,16 +1,11 @@
-# This is a sample Python script.
-
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
+import src.classification.response_classification as response_classification
+import src.clustering.final_clustering as final_clustering
+import src.regression.marketingItemRecommendationRegression as marketingItemRecommendationRegression
 if __name__ == '__main__':
-    print_hi('PyCharm')
+    print("======== Running Classification Model ========")
+    response_classification.main()
+    print("======== Running Clustering Model ========")
+    final_clustering.main()
+    print("======== Running Regression Model ========")
+    marketingItemRecommendationRegression.main()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
