@@ -1,5 +1,6 @@
 # Regression - Business Model Summary
-
+고객 특성 기반 제품군별 광고 노출 순위 추천 알고리즘   
+과거 구매 패턴을 바탕으로 고객별 반응 가능성이 높은 제품군 광고 순서를 추천한다
 ## 1. Business Objective
 
 This regression model is used to decide the display order of product-category banner ads for customers.
