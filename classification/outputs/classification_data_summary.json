@@ -1,0 +1,54 @@
+{
+  "raw_shape": [
+    2240,
+    29
+  ],
+  "cleaned_shape": [
+    2236,
+    30
+  ],
+  "removed_outlier_rows": 4,
+  "feature_count": 29,
+  "target_counts": {
+    "0": 1902,
+    "1": 334
+  },
+  "target_rates": {
+    "0": 0.8506,
+    "1": 0.1494
+  },
+  "missing_values_used_for_imputation": {
+    "Income": 24
+  },
+  "features": [
+    "Education",
+    "Marital_Status",
+    "Income",
+    "Age",
+    "Kidhome",
+    "Teenhome",
+    "TotalChildren",
+    "CustomerTenure",
+    "Recency",
+    "MntWines",
+    "MntFruits",
+    "MntMeatProducts",
+    "MntFishProducts",
+    "MntSweetProducts",
+    "MntGoldProds",
+    "TotalSpending",
+    "NumDealsPurchases",
+    "NumWebPurchases",
+    "NumCatalogPurchases",
+    "NumStorePurchases",
+    "NumWebVisitsMonth",
+    "TotalPurchases",
+    "AcceptedCmp1",
+    "AcceptedCmp2",
+    "AcceptedCmp3",
+    "AcceptedCmp4",
+    "AcceptedCmp5",
+    "CampaignAcceptedTotal",
+    "Complain"
+  ]
+}
