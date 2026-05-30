@@ -1,3 +1,20 @@
+"""
+Customer Personality Analysis - final K-Means clustering workflow.
+
+This script segments customers using 13 proposal-based numeric features.
+Response is not used as a clustering input. It is used only after clustering
+to interpret each segment's campaign response rate.
+
+Main outputs:
+    - clustering_k_scores.csv: silhouette score and inertia for k=2 to k=8
+    - clustering_profile.csv: customer profile and persona label per cluster
+    - marketing_campaign_with_clusters.csv: cleaned data with cluster labels
+    - PNG plots: silhouette, elbow, PCA, response rate, and profile heatmap
+
+Usage:
+    python clustering/outputs/final_clustering.py --input ../marketing_campaign.xlsx --output clustering/outputs
+"""
+
 import argparse
 import os
 from pathlib import Path
@@ -37,6 +54,8 @@ CLUSTER_FEATURES = [
     "NumStorePurchases",
 ]
 
+# These columns are summarized after clustering to explain each customer segment.
+# Response is intentionally excluded here and added separately as Response_Rate.
 PROFILE_BASE_COLUMNS = [
     "Income",
     "Age",
@@ -50,6 +69,7 @@ PROFILE_BASE_COLUMNS = [
 ]
 
 def load_data(file_path) -> pd.DataFrame:
+    """Load the selected marketing campaign dataset from Excel or CSV."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(
@@ -72,8 +92,10 @@ def load_data(file_path) -> pd.DataFrame:
     return df
 
 def add_common_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Create feature-engineered columns used by the clustering workflow."""
     df = df.copy()
 
+    # Convert the enrollment date and measure tenure in days from the latest date.
     df["Dt_Customer"] = pd.to_datetime(
         df["Dt_Customer"], format="%d-%m-%Y", errors="coerce"
     )
@@ -120,13 +142,17 @@ def add_common_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_common_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply common cleaning rules from the team proposal."""
     df = df.copy()
     before = len(df)
 
+    # Remove unrealistic age values created from extreme Year_Birth values.
     df = df[(df["Age"] >= 18) & (df["Age"] <= 100)]
 
+    # Keep missing Income for median imputation, but remove extreme income outliers.
     df = df[(df["Income"].isna()) | (df["Income"] <= 200_000)]
 
+    # Drop rows where date conversion failed because tenure is a selected feature.
     df = df[df["CustomerTenure"].notna()]
 
     after = len(df)
@@ -134,6 +160,7 @@ def clean_common_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def validate_clustering_columns(df: pd.DataFrame) -> None:
+    """Check that every required clustering feature exists before modeling."""
     missing = [col for col in CLUSTER_FEATURES if col not in df.columns]
     if missing:
         raise KeyError(f"Missing required clustering columns: {missing}")
@@ -142,12 +169,15 @@ def validate_clustering_columns(df: pd.DataFrame) -> None:
 
 
 def preprocess_clustering_features(df: pd.DataFrame):
+    """Select clustering features, impute missing values, and standardize scale."""
     validate_clustering_columns(df)
     x_cluster = df[CLUSTER_FEATURES].copy()
 
+    # K-Means cannot handle missing values, so Income NaNs are filled with the median.
     imputer = SimpleImputer(strategy="median")
     x_imputed = imputer.fit_transform(x_cluster)
 
+    # Scaling is required because K-Means is distance-based.
     scaler = StandardScaler()
     x_scaled = scaler.fit_transform(x_imputed)
 
@@ -155,6 +185,7 @@ def preprocess_clustering_features(df: pd.DataFrame):
 
 
 def calculate_k_scores(x_scaled: np.ndarray, k_range=K_RANGE) -> pd.DataFrame:
+    """Calculate silhouette score and inertia for each candidate k."""
     rows = []
     for k in k_range:
         kmeans = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=10)
@@ -170,8 +201,11 @@ def calculate_k_scores(x_scaled: np.ndarray, k_range=K_RANGE) -> pd.DataFrame:
 
 
 def run_clustering(df: pd.DataFrame, final_k: int = FINAL_K):
+    """Fit the final K-Means model and return cluster labels plus k scores."""
     _, x_scaled, _, _ = preprocess_clustering_features(df)
 
+    # k=4 is selected for marketing interpretability, even though k=2 has
+    # the highest silhouette score.
     kmeans = KMeans(n_clusters=final_k, random_state=RANDOM_STATE, n_init=10)
     clustered_df = df.copy()
     clustered_df["Cluster"] = kmeans.fit_predict(x_scaled)
@@ -180,6 +214,7 @@ def run_clustering(df: pd.DataFrame, final_k: int = FINAL_K):
     return clustered_df, k_scores, x_scaled, kmeans
 
 def _make_persona_labels(profile: pd.DataFrame):
+    """Assign human-readable persona labels based on cluster profile means."""
     if len(profile) != 4:
         labels = {}
         for _, row in profile.iterrows():
@@ -228,6 +263,7 @@ def _make_persona_labels(profile: pd.DataFrame):
 
 
 def create_cluster_profile(clustered_df: pd.DataFrame) -> pd.DataFrame:
+    """Summarize each cluster and attach Response_Rate/persona labels."""
     profile = (
         clustered_df.groupby("Cluster")[PROFILE_BASE_COLUMNS]
         .mean()
@@ -250,6 +286,7 @@ def create_cluster_profile(clustered_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     counts = clustered_df.groupby("Cluster").size().rename("CustomerCount")
+    # Response is used only here, after clustering, to interpret campaign sensitivity.
     response_rate = clustered_df.groupby("Cluster")["Response"].mean().round(3).rename("Response_Rate")
 
     profile = profile.merge(counts, on="Cluster").merge(response_rate, on="Cluster")
@@ -275,6 +312,7 @@ def create_cluster_profile(clustered_df: pd.DataFrame) -> pd.DataFrame:
     return profile[ordered_cols].sort_values("Cluster").reset_index(drop=True)
 
 def plot_silhouette_scores(k_scores: pd.DataFrame, output_dir: Path) -> None:
+    """Save the silhouette score plot used to justify k selection."""
     plt.figure(figsize=(8, 5))
     plt.plot(k_scores["k"], k_scores["silhouette_score"], marker="o")
     plt.axvline(FINAL_K, linestyle="--", alpha=0.7, label=f"Chosen k={FINAL_K}")
@@ -289,6 +327,7 @@ def plot_silhouette_scores(k_scores: pd.DataFrame, output_dir: Path) -> None:
 
 
 def plot_elbow(k_scores: pd.DataFrame, output_dir: Path) -> None:
+    """Save the elbow plot using K-Means inertia."""
     plt.figure(figsize=(8, 5))
     plt.plot(k_scores["k"], k_scores["inertia"], marker="o")
     plt.axvline(FINAL_K, linestyle="--", alpha=0.7, label=f"Chosen k={FINAL_K}")
@@ -303,6 +342,7 @@ def plot_elbow(k_scores: pd.DataFrame, output_dir: Path) -> None:
 
 
 def plot_response_rate(profile: pd.DataFrame, output_dir: Path) -> None:
+    """Save a bar chart comparing campaign response rate by cluster."""
     plt.figure(figsize=(8, 5))
     x_labels = profile["Cluster"].astype(str)
     plt.bar(x_labels, profile["Response_Rate"])
@@ -316,6 +356,7 @@ def plot_response_rate(profile: pd.DataFrame, output_dir: Path) -> None:
 
 
 def plot_cluster_heatmap(profile: pd.DataFrame, output_dir: Path) -> None:
+    """Save a standardized heatmap of key cluster profile values."""
     heatmap_cols = {
         "Income_mean": "Income",
         "Age_mean": "Age",
@@ -358,6 +399,7 @@ def plot_cluster_heatmap(profile: pd.DataFrame, output_dir: Path) -> None:
 def plot_pca_clusters(
     x_scaled: np.ndarray, clustered_df: pd.DataFrame, output_dir: Path
 ) -> pd.DataFrame:
+    """Project scaled clustering features to 2D with PCA for visualization."""
     pca = PCA(n_components=2, random_state=RANDOM_STATE)
     coords = pca.fit_transform(x_scaled)
 
@@ -386,6 +428,7 @@ def plot_pca_clusters(
     return pca_df
 
 def main() -> None:
+    """Run the full clustering workflow from command-line arguments."""
     parser = argparse.ArgumentParser(description="Final K-Means clustering workflow")
     parser.add_argument(
         "--input",

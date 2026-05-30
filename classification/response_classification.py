@@ -147,6 +147,10 @@ def build_feature_matrix(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """Split data into X and y for Response classification."""
     y = df["Response"].astype(int)
 
+    # These features follow the final proposal:
+    # demographic + family + tenure + purchase behavior + previous campaign response.
+    # Response itself is not included in X, and CampaignAcceptedTotal was created
+    # only from AcceptedCmp1-5 to avoid target leakage.
     feature_columns = [
         "Education",
         "Marital_Status",
@@ -233,6 +237,7 @@ def save_confusion_matrix_plot(
     model_name: str,
     output_dir: Path,
 ) -> None:
+    """Save a confusion matrix image for PPT/report outputs."""
     display = ConfusionMatrixDisplay(
         confusion_matrix=matrix,
         display_labels=["No Response", "Response"],
@@ -267,6 +272,8 @@ def evaluate_models(x: pd.DataFrame, y: pd.Series, output_dir: Path) -> pd.DataF
     rows = []
 
     for model_name, model in model_candidates().items():
+        # Build a new pipeline for each model so preprocessing is refit only
+        # inside each CV fold and train/test split.
         pipeline = Pipeline(
             steps=[
                 ("preprocess", build_preprocessor(x)),
@@ -283,6 +290,7 @@ def evaluate_models(x: pd.DataFrame, y: pd.Series, output_dir: Path) -> pd.DataF
             error_score="raise",
         )
 
+        # Fit on the training set after CV, then evaluate on the hold-out test set.
         pipeline.fit(x_train, y_train)
         y_pred = pipeline.predict(x_test)
 
