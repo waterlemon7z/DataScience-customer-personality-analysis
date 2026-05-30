@@ -25,7 +25,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, PolynomialFeatures, StandardScaler
-
+import src.util.api as api
 
 @dataclass
 class RecommendationRunResult:
@@ -43,21 +43,6 @@ class RecommendationRunResult:
     baseline_product: str
     baseline_match_rate: float
     product_prior: pd.Series
-
-
-def load_dataset_from_kaggle(
-        dataset: str = "imakash3011/customer-personality-analysis",
-        file_name: str = "marketing_campaign.csv",
-) -> pd.DataFrame:
-    """
-    - Name - load_dataset_from_kaggle
-    - Type - Function
-    - Params - dataset: str, file_name: str
-    - Returns - pd.DataFrame
-    - Description - Get csv data from kaggle server.
-    """
-    path = Path(kagglehub.dataset_download(dataset))
-    return pd.read_csv(path / file_name, sep="\t").copy()
 
 
 def normalize_predicted_ratios(raw_pred: Any) -> np.ndarray:
@@ -154,7 +139,7 @@ class MarketingItemRecommendationRegression:
         - Returns - None
         - Description - Initialize.
         """
-        self.figure_dir = Path("figures")
+        self.figure_dir = Path(__file__).resolve().parents[2] / "output" / "regression"
         self.random_state = random_state
 
         self.raw_df: pd.DataFrame | None = None
@@ -171,7 +156,7 @@ class MarketingItemRecommendationRegression:
         - Returns - pd.DataFrame
         - Description - 캐글 서버에서 csv 파일을 받아온다.
         """
-        self.raw_df = load_dataset_from_kaggle()
+        self.raw_df = api.load_dataset_from_kaggle()
         return self.raw_df.copy()
 
     def prepare_dataframe(self, df: pd.DataFrame, min_age: int = 18, max_age: int = 100,
@@ -379,14 +364,14 @@ class MarketingItemRecommendationRegression:
     def run_pipeline(
             self, df: pd.DataFrame | None = None, feature_sets: Mapping[str, Sequence[str]] | None = None,
             models: Mapping[str, Any] | None = None, product_cols: Sequence[str] | None = None, test_size: float = 0.2,
-            cv_splits: int = 5, verbose: bool = True, plot: bool = False,
+            cv_splits: int = 5, verbose: bool = True, plot: bool = True,
     ) -> RecommendationRunResult:
         """
         - Name - run_pipeline
         - Type - Function
         - Params - df: pd.DataFrame | None = None, feature_sets: Mapping[str, Sequence[str]] | None = None,
             models: Mapping[str, Any] | None = None, product_cols: Sequence[str] | None = None, test_size: float = 0.2,
-            cv_splits: int = 5, verbose: bool = True, plot: bool = False,
+            cv_splits: int = 5, verbose: bool = True, plot: bool = True,
         - Returns - RecommendationRunResult
         - Description - running preprocessing and model training
         """
@@ -707,12 +692,12 @@ class MarketingItemRecommendationRegression:
         return score_table.sort_values("RecommendationScore", ascending=False)
 
     def plot_model_summary(self, result: RecommendationRunResult | None = None, save: bool = True,
-                           show: bool = True, ) -> None:
+                           show: bool = False, ) -> None:
         """
            - Name - plot_model_summary
            - Type - Functions
            - Params - result: RecommendationRunResult | None = None, save: bool = True,
-                           show: bool = True
+                           show: bool = False
            - Returns - None
            - Description - 모델의 요약 plot을 저장
        """
@@ -778,12 +763,12 @@ class MarketingItemRecommendationRegression:
         self._finish_plot("relative_recommendation_lift_vs_baseline", save, show)  # 그래프 저장/출력 처리
 
     def plot_final_diagnostics(self, result: RecommendationRunResult | None = None,
-                               product_cols: Sequence[str] | None = None, save: bool = True, show: bool = True, ) -> tuple[pd.DataFrame, pd.DataFrame]:
+                               product_cols: Sequence[str] | None = None, save: bool = True, show: bool = False, ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
            - Name - plot_final_diagnostics
            - Type - Functions
            - Params - result: RecommendationRunResult | None = None,
-                               product_cols: Sequence[str] | None = None, save: bool = True, show: bool = True
+                               product_cols: Sequence[str] | None = None, save: bool = True, show: bool = False
            - Returns - tuple[pd.DataFrame, pd.DataFrame]
            - Description - 최종 선택 모델의 추천 결과를 진단하기 위해 실제 선호 제품군과 추천 제품군의
                            혼동행렬 및 실제/추천 제품군 분포 그래프를 생성한다.

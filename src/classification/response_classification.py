@@ -23,6 +23,8 @@ import json
 import os
 from pathlib import Path
 
+from src.util import api
+
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "4")
 os.environ.setdefault("OMP_NUM_THREADS", "4")
 
@@ -86,17 +88,9 @@ def make_one_hot_encoder() -> OneHotEncoder:
         return OneHotEncoder(handle_unknown="ignore", sparse=False)
 
 
-def load_dataset(input_path: Path) -> pd.DataFrame:
+def load_dataset() -> pd.DataFrame:
     """Load xlsx/csv/tsv data."""
-    suffix = input_path.suffix.lower()
-    if suffix in {".xlsx", ".xls"}:
-        return pd.read_excel(input_path)
-    if suffix == ".csv":
-        return pd.read_csv(input_path)
-    if suffix in {".txt", ".tsv"}:
-        return pd.read_csv(input_path, sep="\t")
-    raise ValueError(f"Unsupported file type: {input_path.suffix}")
-
+    return api.load_dataset_from_kaggle()
 
 def add_project_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add proposal-based derived features."""
@@ -352,14 +346,12 @@ def evaluate_models(x: pd.DataFrame, y: pd.Series, output_dir: Path) -> pd.DataF
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Path to marketing_campaign file")
-    parser.add_argument("--output", default="classification/outputs", help="Output directory")
+    parser.add_argument("--output", default="output/classification", help="Output directory")
     args = parser.parse_args()
 
-    input_path = Path(args.input)
     output_dir = Path(args.output)
 
-    raw_df = load_dataset(input_path)
+    raw_df = load_dataset()
     df = add_project_features(raw_df)
     df = clean_dataset(df)
     x, y = build_feature_matrix(df)

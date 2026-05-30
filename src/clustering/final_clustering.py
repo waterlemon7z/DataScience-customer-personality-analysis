@@ -19,6 +19,8 @@ import argparse
 import os
 from pathlib import Path
 
+from src.util import api
+
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "4")
 os.environ.setdefault("OMP_NUM_THREADS", "9")
 
@@ -68,28 +70,9 @@ PROFILE_BASE_COLUMNS = [
     "NumWebVisitsMonth",
 ]
 
-def load_data(file_path) -> pd.DataFrame:
+def load_data() -> pd.DataFrame:
     """Load the selected marketing campaign dataset from Excel or CSV."""
-    path = Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(
-            f"Input file not found: {path}. "
-            "Check the file name or pass --input with the correct path."
-        )
-
-    if path.suffix.lower() in [".xlsx", ".xls"]:
-        df = pd.read_excel(path)
-    elif path.suffix.lower() == ".csv":
-        df = pd.read_csv(path, sep="\t")
-        if df.shape[1] == 1:
-            df = pd.read_csv(path)
-    else:
-        raise ValueError("Unsupported input format. Use .xlsx, .xls, or .csv")
-
-    print("Dataset shape:", df.shape)
-    print("Missing values:")
-    print(df.isna().sum()[df.isna().sum() > 0])
-    return df
+    return api.load_dataset_from_kaggle()
 
 def add_common_features(df: pd.DataFrame) -> pd.DataFrame:
     """Create feature-engineered columns used by the clustering workflow."""
@@ -431,13 +414,8 @@ def main() -> None:
     """Run the full clustering workflow from command-line arguments."""
     parser = argparse.ArgumentParser(description="Final K-Means clustering workflow")
     parser.add_argument(
-        "--input",
-        default="marketing_campaign.xlsx",
-        help="Path to marketing campaign data (.xlsx or .csv).",
-    )
-    parser.add_argument(
         "--output",
-        default="outputs",
+        default="output/clustering",
         help="Directory where output csv/png files will be saved.",
     )
     args = parser.parse_args()
@@ -445,7 +423,7 @@ def main() -> None:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = load_data(args.input)
+    df = load_data()
     df = add_common_features(df)
     df = clean_common_data(df)
 
